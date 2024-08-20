@@ -3,137 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Dashboard de Compras</title>
 </head>
 <body>
-    <!--Header-->
-    <section id="header">
-        <a href="#"><img src="" alt=""></a>
-        <div>
-            <ul id="navbar">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="productos.html">Productos</a></li>
-            </ul>
-        </div>
-    </section>
-
-    <h1 class="tablah1">Compras Pendientes</h1>
-    <section id="pending-purchases" class="section-p1">
-        <table id="purchase-table" width="100%">
-            <thead>
-                <tr>
-                    <td>ID</td>
-                    <td>Descripción</td>
-                    <td>Teléfono</td>
-                    <td>Acción</td>
-                </tr>
-            </thead>
-            <tbody id="purchase-list">
-                <!-- Las compras pendientes se cargarán aquí mediante JavaScript -->
-            </tbody>
-        </table>
-    </section>
-
-    <footer class="section-p1">
-        <div class="footer-row">
-          <div class="footer-col">
-            <h4>Contactos</h4>
-            <p><strong>Dirección:</strong> Mirador del este, municipio sucre, Petare</p>
-            <p><strong>Teléfono:</strong> 04129058630</p>
-            <p><strong>Horario:</strong> 7:00 - 19:00 lunes-sábado</p>
-          </div>
-          <div class="footer-col">
-            <h4>Redes sociales</h4>
-            <div class="redes">
-                <br>
-                <i class="fab fa-facebook-f"></i>
-                <i class="fab fa-instagram"></i>
-            </div>
-          </div>
-          <div class="footer-col acerca">
-            <h4>Acerca de nosotros</h4>
-            <a href="#">Acerca de nosotros</a>
-            <br>
-            <a href="#">Políticas y privacidad</a>
-            <br>
-            <a href="#">Términos y condiciones</a>
-            <br>
-            <a href="#">Contactos</a>
-          </div>
-        </div>
-        <div class="footer-row copy">
-          <p>2024-Distribuidora T&S</p>
-        </div>
-    </footer>
+    <div class="container mt-5">
+        <h2>Compras Pendientes</h2>
+        <div id="purchases-list"></div>
+    </div>
 
     <script>
-        async function loadPendingPurchases() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            const purchasesList = document.getElementById('purchases-list');
             try {
                 const response = await fetch('https://api-backend-ndmt.onrender.com/api/dashboard/pending-purchases');
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (!response.ok) throw new Error('Error en la respuesta de la red');
+    
                 const purchases = await response.json();
-                const purchaseList = document.getElementById('purchase-list');
-
+                if (!Array.isArray(purchases)) throw new Error('Datos inesperados');
+    
                 purchases.forEach(purchase => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${purchase.ID}</td>
-                        <td>${purchase.descripcion}</td>
-                        <td>${purchase.telefono}</td>
-                        <td>
-                            <button onclick="confirmPurchase('${purchase.ID}')">Aceptar</button>
-                            <button onclick="cancelPurchase('${purchase.ID}')">Rechazar</button>
-                        </td>
+                    const purchaseDiv = document.createElement('div');
+                    purchaseDiv.className = 'purchase-card card mb-3 p-3';
+    
+                    const productosHTML = Array.isArray(purchase.productos) ? 
+                        purchase.productos.map(product => `<li>${product.name} - Cantidad: ${product.quantity}</li>`).join('') : 
+                        '<li>No hay productos</li>';
+    
+                    purchaseDiv.innerHTML = `
+                        <h4>${purchase.nombre}</h4>
+                        <p>Dirección: ${purchase.direccion}</p>
+                        <p>Teléfono: ${purchase.telefono}</p>
+                        <ul>${productosHTML}</ul>
+                        <button class="btn btn-success" onclick="confirmPurchase('${purchase.id}')">Aceptar</button>
+                        <button class="btn btn-danger" onclick="cancelPurchase('${purchase.id}')">Rechazar</button>
                     `;
-                    purchaseList.appendChild(row);
+                    purchasesList.appendChild(purchaseDiv);
                 });
             } catch (error) {
-                console.error('Error loading pending purchases:', error);
+                console.error('Error al cargar las compras pendientes:', error);
             }
-        }
-
+        });
+    
         async function confirmPurchase(id) {
             try {
                 const response = await fetch(`https://api-backend-ndmt.onrender.com/api/complete-purchase/accept/${id}`, {
                     method: 'PUT'
                 });
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                if (data.success) {
-                    alert('Compra aceptada');
-                    location.reload();
+    
+                if (response.ok) {
+                    alert('Compra aceptada y stock actualizado.');
+                    location.reload();  // Recargar la página para actualizar la lista de compras pendientes
                 } else {
-                    alert('Hubo un error al aceptar la compra.');
+                    alert('Error al aceptar la compra.');
                 }
             } catch (error) {
-                console.error('Error confirming purchase:', error);
+                console.error('Error al aceptar la compra:', error);
             }
         }
-
+    
         async function cancelPurchase(id) {
             try {
                 const response = await fetch(`https://api-backend-ndmt.onrender.com/api/complete-purchase/reject/${id}`, {
                     method: 'DELETE'
                 });
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                if (data.success) {
-                    alert('Compra rechazada');
-                    location.reload();
+    
+                if (response.ok) {
+                    alert('Compra rechazada.');
+                    location.reload();  // Recargar la página para actualizar la lista de compras pendientes
                 } else {
-                    alert('Hubo un error al rechazar la compra.');
+                    alert('Error al rechazar la compra.');
                 }
             } catch (error) {
-                console.error('Error cancelling purchase:', error);
+                console.error('Error al rechazar la compra:', error);
             }
         }
-
-        // Llamada a la función loadPendingPurchases cuando se carga la página
-        loadPendingPurchases();
     </script>
+    
 </body>
 </html>
