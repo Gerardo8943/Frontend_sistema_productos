@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Dashboard de Compras</title>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Compras Pendientes</h2>
+        <div id="purchases-list"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const purchasesList = document.getElementById('purchases-list');
+            try {
+                const response = await fetch('http://localhost:3000/api/dashboard/pending-purchases');
+                if (!response.ok) throw new Error('Error en la respuesta de la red');
+    
+                const purchases = await response.json();
+                if (!Array.isArray(purchases)) throw new Error('Datos inesperados');
+    
+                purchases.forEach(purchase => {
+                    const purchaseDiv = document.createElement('div');
+                    purchaseDiv.className = 'purchase-card card mb-3 p-3';
+    
+                    const productosHTML = Array.isArray(purchase.productos) ? 
+                        purchase.productos.map(product => `<li>${product.name} - Cantidad: ${product.quantity}</li>`).join('') : 
+                        '<li>No hay productos</li>';
+    
+                    purchaseDiv.innerHTML = `
+                        <h4>${purchase.nombre}</h4>
+                        <p>Dirección: ${purchase.direccion}</p>
+                        <p>Teléfono: ${purchase.telefono}</p>
+                        <ul>${productosHTML}</ul>
+                        <button class="btn btn-success" onclick="confirmPurchase('${purchase.id}')">Aceptar</button>
+                        <button class="btn btn-danger" onclick="cancelPurchase('${purchase.id}')">Rechazar</button>
+                    `;
+                    purchasesList.appendChild(purchaseDiv);
+                });
+            } catch (error) {
+                console.error('Error al cargar las compras pendientes:', error);
+            }
+        });
+    
+        async function confirmPurchase(id) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/complete-purchase/accept/${id}`, {
+                    method: 'PUT'
+                });
+    
+                if (response.ok) {
+                    alert('Compra aceptada y stock actualizado.');
+                    location.reload();  // Recargar la página para actualizar la lista de compras pendientes
+                } else {
+                    alert('Error al aceptar la compra.');
+                }
+            } catch (error) {
+                console.error('Error al aceptar la compra:', error);
+            }
+        }
+    
+        async function cancelPurchase(id) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/complete-purchase/reject/${id}`, {
+                    method: 'DELETE'
+                });
+    
+                if (response.ok) {
+                    alert('Compra rechazada.');
+                    location.reload();  // Recargar la página para actualizar la lista de compras pendientes
+                } else {
+                    alert('Error al rechazar la compra.');
+                }
+            } catch (error) {
+                console.error('Error al rechazar la compra:', error);
+            }
+        }
+    </script>
+    
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <title>Distribuidora T&S</title>
+</head>
+<body>
+    <!--Header-->
+    <section id="header">
+        <a href="#"><img src="" alt=""></a>
+        <div>
+            <ul id="navbar">
+                <li><a class="active" href="index.html">Inicio</a></li>
+                <li><a href="productos.html">Productos</a></li>
+            </ul>
+        </div>
+    </section>
+
+    <br><br><br>
+    <h1 class="tablah1">Lista de productos</h1>
+    <br><br><br>
+    <section id="cart" class="section-p1">
+        <table id="product-table" width="100%">
+            <thead>
+                <tr>
+                    <td>Stock disponible</td>
+                    <td>Producto</td>
+                    <td>Precio</td>
+                    <td>Cantidad</td>
+                    <td>Subtotal</td>
+                </tr>
+            </thead>
+            <tbody id="product-list">
+                <!-- Los productos se cargarán aquí mediante JavaScript -->
+            </tbody>
+        </table>
+    </section>
+
+    <section id="cart-add" class="section-p1">
+        <div id="Subtotal">
+            <h3>Total</h3>
+            <table id="total-table">
+                <tr>
+                    <td>Subtotal</td>
+                    <td id="subtotal">$0.00</td>
+                </tr>
+                <tr>
+                    <td><strong>Total</strong></td>
+                    <td><strong id="total">$0.00</strong></td>
+                </tr>
+            </table>
+            <button class="normal" onclick="redirectToPayment()">Procede a pagar</button>
+        </div>
+    </section>
+
+    <br><br><br>
+    <footer class="section-p1">
+        <div class="footer-row">
+          <div class="footer-col">
+            <h4>Contactos</h4>
+            <p><strong>Dirección:</strong> Mirador del este, municipio sucre, Petare</p>
+            <p><strong>Teléfono:</strong> 04129058630</p>
+            <p><strong>Horario:</strong> 7:00 - 19:00 lunes-sábado</p>
+          </div>
+          <div class="footer-col">
+            <h4>Redes sociales</h4>
+            <div class="redes">
+                <br>
+                <i class="fab fa-facebook-f"></i>
+                <i class="fab fa-instagram"></i>
+            </div>
+          </div>
+          <div class="footer-col acerca">
+            <h4>Acerca de nosotros</h4>
+            <a href="#">Acerca de nosotros</a>
+            <br>
+            <a href="#">Políticas y privacidad</a>
+            <br>
+            <a href="#">Términos y condiciones</a>
+            <br>
+            <a href="#">Contactos</a>
+          </div>
+        </div>
+        <div class="footer-row copy">
+          <p>2024-Distribuidora T&S</p>
+        </div>
+    </footer>
+
+    <script>
+        async function loadProducts() {
+            try {
+                const response = await fetch('http://localhost:3000/api/products');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const products = await response.json();
+                const productList = document.getElementById('product-list');
+                let subtotal = 0;
+
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.cantidad_stock}</td>
+                        <td>${product.nombre}</td>
+                        <td>$${product.precio.toFixed(2)}</td>
+                        <td><input type="number" value="0" min="0" max="${product.cantidad_stock}" data-price="${product.precio}" data-id="${product.id}" oninput="updateSubtotal()"></td>
+                        <td>$<span class="subtotal">0.00</span></td>
+                    `;
+                    productList.appendChild(row);
+                });
+
+                updateSubtotal();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        function updateSubtotal() {
+            const rows = document.querySelectorAll('#product-list tr');
+            let totalSubtotal = 0;
+            rows.forEach(row => {
+                const quantityInput = row.querySelector('input[type="number"]');
+                const price = parseFloat(quantityInput.getAttribute('data-price'));
+                const quantity = parseInt(quantityInput.value);
+                const subtotal = price * quantity;
+                row.querySelector('.subtotal').textContent = subtotal.toFixed(2);
+                totalSubtotal += subtotal;
+            });
+            document.getElementById('subtotal').textContent = totalSubtotal.toFixed(2);
+            document.getElementById('total').textContent = totalSubtotal.toFixed(2);
+        }
+
+        function redirectToPayment() {
+            const rows = document.querySelectorAll('#product-list tr');
+            let selectedProducts = [];
+
+            rows.forEach(row => {
+                const quantityInput = row.querySelector('input[type="number"]');
+                const quantity = parseInt(quantityInput.value);
+                if (quantity > 0) {
+                    const productName = row.querySelector('td:nth-child(2)').textContent;
+                    selectedProducts.push({ name: productName, quantity: quantity });
+                }
+            });
+
+            if (selectedProducts.length > 0) {
+                const queryString = selectedProducts.map(product => `producto=${encodeURIComponent(product.name)}&cantidad=${product.quantity}`).join('&');
+                const url = `formulario.html?${queryString}`;
+                window.location.href = url;
+            } else {
+                alert("Por favor, selecciona al menos un producto y una cantidad válida.");
+            }
+        }
+
+        // Llamada a la función loadProducts cuando se carga la página
+        loadProducts();
+    </script>
+</body>
+</html>
